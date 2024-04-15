@@ -14,11 +14,15 @@ The Client class implements a UDP client for sending E1.31 (sACN) traffic. The c
 
 ```javascript
 var e131 = require('e131');
-var client = new e131.Client(arg, [port]);
+var client = new e131.Client(arg, [port], {multicastInterface:'192.168.0.2'});
 ```
 
-The first argument can be a host address, name or universe number. If `port` is omitted, the default E1.31 port `5568` is used.
-If a universe is given, the client will automatically join the relevant Multicast group.
+The first argument can be a host address, name or universe number. If a universe is given, the client will automatically join the relevant Multicast group.
+
+If `port` is omitted, the default E1.31 port `5568` is used.
+
+If you have multiple network interface you can use `multicastInterface` option to specify which one to use. The value should be the ip address of the outgoing network interface, for example `192.168.0.2`.
+
 The client automatically increments (and wraps around if necessary) the sequence number of the transmitted packet.
 
 The client provides two methods:
@@ -87,6 +91,26 @@ var e131 = require('e131');
 var server = new e131.Server([0x0001, 0x0002]);
 server.on('listening', function() {
   console.log('server listening on port %d, universes %j', this.port, this.universes);
+});
+server.on('packet', function (packet) {
+  var sourceName = packet.getSourceName();
+  var sequenceNumber = packet.getSequenceNumber();
+  var universe = packet.getUniverse();
+  var slotsData = packet.getSlotsData();
+
+  console.log('source="%s", seq=%d, universe=%d, slots=%d',
+    sourceName, sequenceNumber, universe, slotsData.length);
+  console.log('slots data = %s', slotsData.toString('hex'));
+});
+```
+
+If you have multiple network interfaces you can specify which interface to use with the multicastInterface option
+```javascript
+var e131 = require('e131');
+
+var server = new e131.Server([0x0001, 0x0002], undefined, {multicastInterface:'192.168.0.2'});
+server.on('listening', function() {
+  console.log('server listening on interface %s, port %d, universes %j', this.multicastInterface, this.port, this.universes);
 });
 server.on('packet', function (packet) {
   var sourceName = packet.getSourceName();
